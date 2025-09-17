@@ -1,0 +1,2 @@
+> p route | grep default
+default via 10.130.40.223 dev wlp9s0 proto dhcp src 10.130.40.58 metric 20600
