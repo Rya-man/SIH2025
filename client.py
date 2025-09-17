@@ -1,15 +1,36 @@
 import socket
-""" So now we will be assigning the host ip after a device connects to it, as of now it is static.
-    later on we can make it dynamic, in this case the host ip is the ip address of the device suppling the hotspot.
-    the connected devices can talk to the host device only
-    """
-HOST = "10.130.40.223"  # your Android hotspot IP (gateway)
-PORT = 5000
+import json
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((HOST, PORT))
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 7000
 
-s.sendall(b"Hello from Laptop!")
-print("Server replied:", s.recv(1024).decode())
+LOCAL_HOST = "127.0.0.1"
+LOCAL_PORT = 6000
 
-s.close()
+# Local proxy for game.py
+local_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+local_sock.bind((LOCAL_HOST, LOCAL_PORT))
+local_sock.listen(5)
+print(f"[*] Local proxy running on {LOCAL_HOST}:{LOCAL_PORT}")
+
+while True:
+    conn, addr = local_sock.accept()
+    print("[*] Game connected:", addr)
+
+    # Receive gameID from game.py
+    game_id = conn.recv(1024).decode().strip()
+    print(f"[*] Got gameID from game.py: {game_id}")
+
+    # Connect to server and forward gameID
+    server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_sock.connect((SERVER_HOST, SERVER_PORT))
+    server_sock.sendall(game_id.encode())
+
+    # Get quiz data from server
+    data = server_sock.recv(1024).decode()
+    server_sock.close()
+
+    # Send data back to game.py
+    conn.sendall(data.encode())
+    conn.close()
+    print("[*] Sent quiz data to game.py")
