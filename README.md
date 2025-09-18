@@ -1,51 +1,58 @@
 # Quiz Game Prototype  
 
-This is a simple prototype that demonstrates how three Python scripts (`server.py`, `client.py`, and `game.py`) communicate with each other to simulate a quiz game setup.  
+This is a simple prototype that demonstrates a frontend-backend setup for a quiz game using Python and a browser-based interface.  
 
 ---
 
-## 1. Connection Between `server.py`, `client.py`, and `game.py`
+## 1. Connection Between `server.py`, `client.py`, and `game.html`
 
 - **`server.py`**  
-  - Acts as the data provider.  
-  - Stores multiple sets of quiz data (questions, options, correct answer) mapped to different **game IDs**.  
-  - Waits for clients (like `client.py`) to request data.  
+  - Stores multiple sets of quiz data (questions, options, correct answers) mapped to different **game IDs**.  
+  - Waits for connections from `client.py` via **TCP sockets**.  
 
 - **`client.py`**  
-  - Connects to `server.py`.  
-  - Acts as a middleman between the game and the server.  
-  - Forwards a **game ID** request from `game.py` to `server.py`, receives the quiz data, and then passes it back to `game.py`.  
-  - Keeps its connection open to the server even when `game.py` ends, so it can be reused for another game session.  
+  - Acts as a proxy between the frontend and `server.py`.  
+  - Runs a **Flask server** that the frontend (`game.html`) can fetch from via HTTP.  
+  - When a frontend request comes in for a game ID, `client.py` connects to `server.py` through sockets, fetches the corresponding quiz data, and returns it as JSON.  
+  - Keeps running so multiple frontend sessions can request data.  
 
-- **`game.py`**  
-  - Runs the actual quiz game for the user.  
-  - Prompts the user to enter a **game ID**.  
-  - Requests the corresponding quiz data from `client.py`.  
-  - Shows the question and options to the player, takes the user’s answer, and then checks if it is correct.  
+- **`game.html`**  
+  - Browser-based frontend that interacts with `client.py` via **HTTP fetch requests**.  
+  - Prompts the user to enter a **game ID**, requests quiz data from `client.py`, and displays the question and options.  
+  - Handles user interaction and checks answers.  
 
 ---
 
 ## 2. Local-Only Setup
 
-- This project is designed to run on the **same system** for practice.  
-- No external networking or internet connection is required.  
-- The server, client, and game scripts all run locally and communicate using **localhost (`127.0.0.1`)** and a chosen port.  
+- All components run on the **same system** using `localhost (127.0.0.1)`.  
+- No internet connection is required.  
+- Ports used:  
+  - `server.py` → TCP socket (default: 5001)  
+  - `client.py` → Flask HTTP server (default: 5000)  
+  - `game.html` → served via local HTTP server (e.g., `python -m http.server 8080`)  
 
 ---
 
 ## 3. Steps to Run  
 
 ```bash
-# 1. Start the server
+# 1. Start the server (data provider)
+cd backend
 python server.py
-# This will start listening for client connections.
+# Server listens on TCP port 5001 for client connections.
 
-# 2. Start the client
+# 2. Start the client (proxy)
+cd backend
 python client.py
-# The client connects to the server and waits for game requests.
+# Client runs a Flask server on HTTP port 5000.
 
-# 3. Run the game
-python game.py
-# You’ll first be asked to enter a game ID (e.g., 1 or 2).
-# The client will fetch the quiz data for that ID from the server.
-# The game will then prompt you with the question, options, and check your answer.
+# 3. Serve the frontend
+cd frontend
+python -m http.server 8080
+# Opens the HTML page via http://127.0.0.1:8080/game.html
+
+# 4. Open the game in a browser
+# Enter a game ID (e.g., 1 or 2) and click "Fetch Quiz".
+# The frontend will fetch quiz data from client.py,
+# which retrieves it from server.py, and then displays it.
